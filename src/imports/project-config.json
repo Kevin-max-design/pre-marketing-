@@ -1,0 +1,335 @@
+{
+  "project": {
+    "name": "StartHub",
+    "description": "Private micro-investment platform connecting founders and investors with founder-controlled access and private deal flow.",
+    "design_reference": "Setrex SaaS Template",
+    "theme": "Dark Fintech SaaS",
+    "version": "1.0"
+  },
+
+  "tech_stack": {
+    "frontend": "Next.js 14",
+    "styling": "TailwindCSS",
+    "animations": "Framer Motion",
+    "backend": "Node.js Express",
+    "database": "PostgreSQL",
+    "realtime": "Socket.io",
+    "auth": "JWT",
+    "file_storage": "AWS S3",
+    "deployment": {
+      "frontend": "Vercel",
+      "backend": "Railway",
+      "database": "Supabase"
+    }
+  },
+
+  "design_system": {
+    "colors": {
+      "background_primary": "#0C0C0F",
+      "background_secondary": "#141419",
+      "background_dark": "#010104",
+      "accent_primary": "#CFFE25",
+      "accent_secondary": "#F3FF9B",
+      "accent_glow": "#B8FF00",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#D2D2D2",
+      "border": "#1A1A1F",
+      "card_bg": "#151518"
+    },
+
+    "typography": {
+      "font_family": "Inter",
+      "heading_sizes": {
+        "h1": "64px",
+        "h2": "48px",
+        "h3": "36px",
+        "h4": "28px",
+        "h5": "22px"
+      },
+      "paragraph": "18px"
+    },
+
+    "effects": {
+      "glass_card": {
+        "background": "rgba(20,20,25,0.85)",
+        "blur": "12px",
+        "border": "1px solid rgba(255,255,255,0.05)"
+      },
+      "neon_glow": {
+        "shadow": "0 0 25px rgba(207,254,37,0.6)"
+      }
+    }
+  },
+
+  "animations": {
+    "page_load": "fade_up",
+    "section_scroll": "slide_up",
+    "card_hover": "scale_1.04",
+    "button_hover": "glow_expand",
+    "menu_open": "slide_down",
+    "modal_open": "zoom_in",
+    "dashboard_card_hover": "lift_shadow"
+  },
+
+  "pages": [
+    "landing",
+    "login",
+    "signup_founder",
+    "signup_investor",
+    "founder_dashboard",
+    "investor_dashboard",
+    "chat",
+    "profile",
+    "settings",
+    "admin_panel"
+  ],
+
+  "landing_page": {
+    "sections": [
+      {
+        "type": "navbar",
+        "logo": "StartHub",
+        "links": [
+          "For Founders",
+          "For Investors",
+          "How It Works",
+          "Pricing",
+          "Login"
+        ],
+        "cta": "Join Pilot"
+      },
+
+      {
+        "type": "hero",
+        "headline": "Micro-Investing Platform for Founders",
+        "subtext": "Raise capital. Invest early. Start small.",
+        "buttons": [
+          "Join as Founder",
+          "Join as Investor"
+        ],
+        "background_effect": "gradient_orb_animation"
+      },
+
+      {
+        "type": "social_proof",
+        "items": [
+          "Private Pilot Launch",
+          "Founder Approved Access",
+          "Verified Investors Only"
+        ]
+      },
+
+      {
+        "type": "features",
+        "cards": [
+          "Founder Privacy",
+          "Verified Investors",
+          "Micro Investments",
+          "Private Deal Flow",
+          "Smart Matching"
+        ]
+      },
+
+      {
+        "type": "how_it_works",
+        "founder_steps": [
+          "Submit startup",
+          "Stay private",
+          "Approve investors",
+          "Raise funds"
+        ],
+        "investor_steps": [
+          "Browse startups",
+          "Request access",
+          "Get approved",
+          "Invest privately"
+        ]
+      },
+
+      {
+        "type": "waitlist",
+        "fields": [
+          "name",
+          "email",
+          "role",
+          "city",
+          "investment_range"
+        ]
+      }
+    ]
+  },
+
+  "dashboards": {
+
+    "investor_dashboard": {
+      "sidebar": [
+        "Startup Feed",
+        "Saved Startups",
+        "Requests Sent",
+        "Matches",
+        "Messages",
+        "Profile"
+      ],
+
+      "startup_card": {
+        "fields": [
+          "masked_startup_id",
+          "industry",
+          "stage",
+          "location",
+          "funding_needed",
+          "short_pitch"
+        ],
+        "actions": [
+          "Request Access",
+          "Save"
+        ]
+      }
+    },
+
+    "founder_dashboard": {
+      "sidebar": [
+        "My Startup",
+        "Investor Requests",
+        "Approved Investors",
+        "Messages",
+        "Settings"
+      ],
+
+      "request_card": {
+        "fields": [
+          "investor_name",
+          "investment_range",
+          "bio"
+        ],
+        "actions": [
+          "Approve",
+          "Reject"
+        ]
+      }
+    }
+  },
+
+  "database_schema": {
+
+    "users": {
+      "id": "uuid",
+      "name": "string",
+      "email": "string",
+      "password": "hashed",
+      "role": "founder|investor|admin",
+      "city": "string",
+      "created_at": "timestamp"
+    },
+
+    "startups": {
+      "id": "uuid",
+      "founder_id": "uuid",
+      "industry": "string",
+      "stage": "string",
+      "location": "string",
+      "funding_needed": "number",
+      "pitch": "text"
+    },
+
+    "access_requests": {
+      "id": "uuid",
+      "startup_id": "uuid",
+      "investor_id": "uuid",
+      "status": "pending|approved|rejected",
+      "created_at": "timestamp"
+    },
+
+    "matches": {
+      "id": "uuid",
+      "startup_id": "uuid",
+      "investor_id": "uuid",
+      "approved_at": "timestamp"
+    },
+
+    "messages": {
+      "id": "uuid",
+      "sender_id": "uuid",
+      "receiver_id": "uuid",
+      "content": "text",
+      "timestamp": "timestamp"
+    }
+  },
+
+  "api_routes": [
+
+    "POST /auth/register",
+    "POST /auth/login",
+
+    "GET /startups",
+    "POST /startups",
+
+    "POST /request-access",
+    "GET /founder/requests",
+
+    "POST /approve-request",
+    "POST /reject-request",
+
+    "GET /matches",
+
+    "POST /messages",
+    "GET /messages/:matchId"
+  ],
+
+  "workflow": [
+    "Investor browses startups",
+    "Investor requests access",
+    "Founder reviews investor",
+    "Founder approves",
+    "Investor unlocks identity",
+    "Private chat opens",
+    "Deal discussion begins"
+  ],
+
+  "security": [
+    "JWT authentication",
+    "password hashing",
+    "rate limiting",
+    "SQL injection protection",
+    "XSS protection"
+  ],
+
+  "ai_features": [
+    "Investor startup matching",
+    "startup recommendation engine",
+    "deal probability scoring"
+  ],
+
+  "admin_panel": [
+    "user management",
+    "startup moderation",
+    "deal analytics",
+    "investor verification"
+  ],
+
+  "analytics": [
+    "startup views",
+    "request conversion rate",
+    "investor engagement"
+  ],
+
+  "folder_structure": {
+    "frontend": [
+      "components",
+      "pages",
+      "hooks",
+      "context",
+      "styles"
+    ],
+    "backend": [
+      "routes",
+      "controllers",
+      "models",
+      "middleware"
+    ],
+    "database": [
+      "schema.sql",
+      "migrations"
+    ]
+  }
+}

@@ -1,24 +1,43 @@
 # Dependencies
 node_modules/
 .npm/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Build
 dist/
 dist-ssr/
+build/
 *.local
 
-# Environment
+# Environment & Secrets (CRITICAL)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+*.secret
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account.json
 
-# IDE
+# IDE & Editor
 .vscode/
 .idea/
 .gemini/
+*.sublime-project
+*.sublime-workspace
+
+# Debug & Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # System
 .DS_Store
-*.log
+Thumbs.db
+src/.DS_Store

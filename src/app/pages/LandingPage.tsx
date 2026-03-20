@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link } from "react-router";
+import { supabase } from "@/lib/supabase";
 import { motion, useScroll, useTransform, useInView, useMotionValue, useSpring } from "motion/react";
 import { GlassCard } from "../components/GlassCard";
 import { GridBackground } from "../components/GridBackground";
@@ -316,7 +317,7 @@ function FloatingTerminal() {
 
 /* ═══ HERO ═══ */
 
-function HeroSection() {
+function HeroSection({ stats }: { stats: any }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "40%"]);
@@ -495,10 +496,10 @@ function HeroSection() {
           <FadeUp delay={0.45}>
             <div className="mt-16 flex flex-wrap items-center gap-10">
               {[
-                { value: 500, suffix: "+", label: "Active Founders", icon: Rocket },
-                { value: 2.1, suffix: "M", label: "Capital Raised", prefix: "$", decimals: 1, icon: DollarSign },
-                { value: 120, suffix: "+", label: "Verified Investors", icon: Users },
-                { value: 99.9, suffix: "%", label: "Uptime", decimals: 1, icon: Activity },
+                { value: stats.founders, suffix: "+", label: "Active Founders", icon: Rocket },
+                { value: stats.capital / 1000, suffix: "K", label: "Capital Raised", prefix: "$", decimals: 1, icon: DollarSign },
+                { value: stats.investors, suffix: "+", label: "Verified Investors", icon: Users },
+                { value: 0, suffix: "%", label: "Uptime", decimals: 1, icon: Activity },
               ].map((stat) => (
                 <motion.div key={stat.label} className="flex items-center gap-3" whileHover={{ scale: 1.08, y: -3 }} transition={{ type: "spring", stiffness: 400 }}>
                   <motion.div 
@@ -607,12 +608,12 @@ function FeaturesSection() {
 
 /* ═══ STATS ═══ */
 
-function StatsSection() {
-  const stats = [
-    { value: 150, suffix: "K+", label: "Total Funding Raised", prefix: "$" },
-    { value: 94, suffix: "%", label: "Founder Satisfaction" },
-    { value: 3.2, suffix: "x", label: "Faster Than Traditional", decimals: 1 },
-    { value: 500, suffix: "+", label: "Private Deals Closed" },
+function StatsSection({ stats }: { stats: any }) {
+  const displayStats = [
+    { value: stats.capital / 1000, suffix: "K+", label: "Total Funding Raised", prefix: "$" },
+    { value: 0, suffix: "%", label: "Founder Satisfaction" },
+    { value: 0, suffix: "x", label: "Faster Than Traditional", decimals: 1 },
+    { value: stats.deals, suffix: "+", label: "Private Deals Closed" },
   ];
 
   return (
@@ -620,7 +621,7 @@ function StatsSection() {
       <FloatingParticles />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <StaggerChildren className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
+          {displayStats.map((stat) => (
             <StaggerItem key={stat.label}>
               <div className="text-center">
                 <div
@@ -846,8 +847,32 @@ function TestimonialsSection() {
 
 function WaitlistSection() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "", role: "", city: "" });
+  
   const inputCls = "w-full px-4 py-4 rounded-xl text-white placeholder-[#333] focus:outline-none focus:ring-1 focus:ring-[#6C8EFF]/30 transition-all";
   const inputStyle: React.CSSProperties = { fontSize: "14px", background: "rgba(10,14,26,0.8)", border: "1px solid rgba(255,255,255,0.04)", backdropFilter: "blur(12px)" };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.role) {
+      alert("Please select your role");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from(formData.role)
+        .insert([{ email: formData.email, status: 'active' }]);
+      
+      if (error) throw error;
+      setSubmitted(true);
+    } catch (err: any) {
+      alert("Error joining waitlist: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ParallaxSection className="py-28" speed={0.04}>
@@ -872,23 +897,61 @@ function WaitlistSection() {
 
         {!submitted ? (
           <FadeUp delay={0.1}>
-            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
+            <form className="space-y-3" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input type="text" placeholder="Full Name" required className={inputCls} style={inputStyle} />
-                <input type="email" placeholder="Email Address" required className={inputCls} style={inputStyle} />
+                <input 
+                  type="text" 
+                  placeholder="Full Name" 
+                  required 
+                  className={inputCls} 
+                  style={inputStyle} 
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+                <input 
+                  type="email" 
+                  placeholder="Email Address" 
+                  required 
+                  className={inputCls} 
+                  style={inputStyle} 
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <select className={`${inputCls} appearance-none`} style={inputStyle} defaultValue="">
+                <select 
+                  className={`${inputCls} appearance-none`} 
+                  style={inputStyle} 
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  required
+                >
                   <option value="" disabled>I am a...</option>
                   <option value="founder">Founder</option>
                   <option value="investor">Investor</option>
                 </select>
-                <input type="text" placeholder="City" className={inputCls} style={inputStyle} />
+                <input 
+                  type="text" 
+                  placeholder="City" 
+                  className={inputCls} 
+                  style={inputStyle} 
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                />
               </div>
-              <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} className="group relative w-full py-4 rounded-xl overflow-hidden" style={{ fontSize: "15px", fontWeight: 600 }}>
+              <motion.button 
+                type="submit" 
+                disabled={loading}
+                whileHover={{ scale: 1.01 }} 
+                whileTap={{ scale: 0.98 }} 
+                className="group relative w-full py-4 rounded-xl overflow-hidden disabled:opacity-50" 
+                style={{ fontSize: "15px", fontWeight: 600 }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-r from-[#6C8EFF] to-[#38BDF8] transition-all group-hover:shadow-[0_0_50px_rgba(108,142,255,0.3)]" />
                 <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }} />
-                <span className="relative text-white flex items-center justify-center gap-2">Join the Waitlist <ArrowRight size={16} /></span>
+                <span className="relative text-white flex items-center justify-center gap-2">
+                  {loading ? "Joining..." : "Join the Waitlist"} <ArrowRight size={16} />
+                </span>
               </motion.button>
               <p className="text-[#333] mt-2" style={{ fontSize: "12px" }}>No spam. We'll only email you when your invite is ready.</p>
             </form>
@@ -964,12 +1027,37 @@ function Footer() {
 /* ═══ PAGE ═══ */
 
 export function LandingPage() {
+  const [stats, setStats] = useState({ founders: 0, investors: 0, capital: 0, deals: 0 });
+
+  useEffect(() => {
+    async function fetchStats() {
+      const { data: profiles } = await supabase.from('profiles').select('role');
+      const { data: startups } = await supabase.from('startups').select('funding_needed');
+      const { data: deals } = await supabase.from('access_requests').select('id').eq('status', 'approved');
+
+      const foundersCount = profiles?.filter(p => p.role === 'FOUNDER').length || 0;
+      const investorsCount = profiles?.filter(p => p.role === 'INVESTOR').length || 0;
+      const totalCapital = startups?.reduce((acc, curr) => {
+        const val = parseFloat(curr.funding_needed.replace(/[^0-9.]/g, '')) || 0;
+        return acc + val;
+      }, 0) || 0;
+
+      setStats({
+        founders: foundersCount,
+        investors: investorsCount,
+        capital: totalCapital,
+        deals: deals?.length || 0
+      });
+    }
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#000000] overflow-x-hidden">
-      <HeroSection />
+      <HeroSection stats={stats} />
       <TrustMarquee />
       <FeaturesSection />
-      <StatsSection />
+      <StatsSection stats={stats} />
       <HowItWorksSection />
       <TestimonialsSection />
       <WaitlistSection />

@@ -32,6 +32,7 @@ export function SignupPage() {
     try {
       const result = await signup({
         email,
+        password,
         name: `${firstName} ${lastName}`.trim(),
         role: isFounder ? "FOUNDER" : "INVESTOR",
         city: city || undefined,

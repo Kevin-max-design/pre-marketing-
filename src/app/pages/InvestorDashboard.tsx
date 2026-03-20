@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { motion } from "motion/react";
 import {
   LayoutGrid, Bookmark, Send, Handshake, MessageSquare, User,
@@ -13,27 +14,8 @@ const sidebarItems = [
   { icon: Bookmark, label: "Saved Startups", id: "saved" },
   { icon: Send, label: "Requests Sent", id: "requests" },
   { icon: Handshake, label: "Matches", id: "matches" },
-  { icon: MessageSquare, label: "Messages", id: "messages", badge: 1 },
+  { icon: MessageSquare, label: "Messages", id: "messages" },
   { icon: User, label: "Profile", id: "profile" },
-];
-
-const mockStartups = [
-  { id: "STR-4821", industry: "FinTech", stage: "Pre-Seed", location: "San Francisco, CA", fundingNeeded: "$150K", pitch: "Building next-gen payment infrastructure for emerging markets with 10x lower transaction fees.", matchScore: 92, saved: false, tags: ["Payments", "B2B"] },
-  { id: "STR-7293", industry: "HealthTech", stage: "Seed", location: "New York, NY", fundingNeeded: "$300K", pitch: "AI-powered diagnostic platform for early disease detection, already deployed in 5 hospitals.", matchScore: 87, saved: true, tags: ["AI", "Healthcare"] },
-  { id: "STR-1056", industry: "EdTech", stage: "Pre-Seed", location: "Austin, TX", fundingNeeded: "$80K", pitch: "Gamified learning platform for K-12 STEM education with adaptive curriculum engine.", matchScore: 78, saved: false, tags: ["Education", "K-12"] },
-  { id: "STR-5438", industry: "AI/ML", stage: "Seed", location: "Seattle, WA", fundingNeeded: "$500K", pitch: "Enterprise automation platform reducing operational costs by 40% using proprietary AI models.", matchScore: 95, saved: false, tags: ["Enterprise", "Automation"] },
-  { id: "STR-8912", industry: "SaaS", stage: "Pre-Seed", location: "Miami, FL", fundingNeeded: "$120K", pitch: "All-in-one workspace tool for remote teams combining project management and real-time collaboration.", matchScore: 84, saved: true, tags: ["Remote", "Productivity"] },
-  { id: "STR-3367", industry: "E-Commerce", stage: "Seed", location: "Chicago, IL", fundingNeeded: "$200K", pitch: "AI-curated sustainable fashion marketplace connecting eco-conscious brands with consumers.", matchScore: 71, saved: false, tags: ["Sustainability", "Fashion"] },
-];
-
-const mockRequestsSent = [
-  { id: "STR-4821", industry: "FinTech", status: "pending", sentAt: "2 hours ago" },
-  { id: "STR-1056", industry: "EdTech", status: "pending", sentAt: "1 day ago" },
-  { id: "STR-7293", industry: "HealthTech", status: "approved", sentAt: "3 days ago" },
-];
-
-const mockMatches = [
-  { id: "STR-7293", founderName: "Jane Smith", industry: "HealthTech", matchedAt: "3 days ago" },
 ];
 
 function MatchScoreRing({ score }: { score: number }) {
@@ -52,7 +34,7 @@ function MatchScoreRing({ score }: { score: number }) {
   );
 }
 
-function StartupCard({ startup, onSave, onRequest }: { startup: typeof mockStartups[0]; onSave: (id: string) => void; onRequest: (id: string) => void }) {
+function StartupCard({ startup, onSave, onRequest }: { startup: any; onSave: (id: string) => void; onRequest: (id: string) => void }) {
   return (
     <GlassCard>
       <div className="flex items-start justify-between mb-4">
@@ -67,7 +49,7 @@ function StartupCard({ startup, onSave, onRequest }: { startup: typeof mockStart
       </div>
       <p className="text-[#D2D2D2] mb-4" style={{ fontSize: "13.5px", lineHeight: 1.65 }}>{startup.pitch}</p>
       <div className="flex flex-wrap gap-1.5 mb-4">
-        {startup.tags.map((tag) => (<span key={tag} className="px-2 py-0.5 rounded text-[#8A8A9A]" style={{ fontSize: "11px", fontWeight: 500, background: "rgba(255,255,255,0.03)" }}>{tag}</span>))}
+        {startup.tags?.map((tag: string) => (<span key={tag} className="px-2 py-0.5 rounded text-[#8A8A9A]" style={{ fontSize: "11px", fontWeight: 500, background: "rgba(255,255,255,0.03)" }}>{tag}</span>))}
       </div>
       <div className="flex items-center gap-4 mb-5 pb-5 border-b border-white/[0.04]">
         <div className="flex items-center gap-1 text-[#555]" style={{ fontSize: "12px" }}><MapPin size={12} /> {startup.location}</div>
@@ -88,11 +70,53 @@ function StartupCard({ startup, onSave, onRequest }: { startup: typeof mockStart
 
 export function InvestorDashboard() {
   const [activeTab, setActiveTab] = useState("feed");
-  const [startups, setStartups] = useState(mockStartups);
+  const [startups, setStartups] = useState<any[]>([]);
+  const [requestsSent, setRequestsSent] = useState<any[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
+
+  useEffect(() => {
+    async function loadData() {
+      // Load Feed
+      const { data: feedData } = await supabase.from('startups').select('*');
+      if (feedData) {
+         setStartups(feedData.map((d: any) => ({
+           id: d.id, industry: d.industry, stage: d.stage, location: d.location, 
+           fundingNeeded: d.funding_needed, pitch: d.pitch, matchScore: 88, saved: false, tags: d.tags || []
+         })));
+      }
+
+      if (user.id) {
+        // Load Requests Sent
+        const { data: reqs } = await supabase.from('access_requests')
+          .select('*, startup:startups(industry, id)')
+          .eq('investor_id', user.id);
+        if (reqs) setRequestsSent(reqs);
+
+        // Load Matches (Approved requests)
+        const { data: mData } = await supabase.from('access_requests')
+          .select('*, startup:startups(industry, id, founder:profiles(first_name, last_name))')
+          .eq('investor_id', user.id)
+          .eq('status', 'approved');
+        if (mData) setMatches(mData);
+      }
+    }
+    loadData();
+  }, [user.id]);
 
   const toggleSave = (id: string) => setStartups((p) => p.map((s) => (s.id === id ? { ...s, saved: !s.saved } : s)));
+  
+  const handleRequest = async (startupId: string) => {
+     if (user.id) {
+       await supabase.from('access_requests').insert({
+         startup_id: startupId,
+         investor_id: user.id
+       });
+       alert('Access Request sent!');
+     }
+  };
   const savedStartups = startups.filter((s) => s.saved);
   const filteredStartups = searchQuery ? startups.filter((s) => s.industry.toLowerCase().includes(searchQuery.toLowerCase()) || s.pitch.toLowerCase().includes(searchQuery.toLowerCase())) : startups;
 
@@ -137,7 +161,7 @@ export function InvestorDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {filteredStartups.map((s, i) => (
                   <motion.div key={s.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                    <StartupCard startup={s} onSave={toggleSave} onRequest={() => {}} />
+                    <StartupCard startup={s} onSave={toggleSave} onRequest={handleRequest} />
                   </motion.div>
                 ))}
               </div>
@@ -149,26 +173,28 @@ export function InvestorDashboard() {
               {savedStartups.length === 0 ? (
                 <div className="text-center py-20"><div className="w-14 h-14 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4"><Bookmark size={24} className="text-[#333]" /></div><p className="text-[#8A8A9A]" style={{ fontSize: "15px", fontWeight: 600 }}>No saved startups</p><p className="text-[#444] mt-1" style={{ fontSize: "13px" }}>Save startups from the feed to review later</p></div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">{savedStartups.map((s) => <StartupCard key={s.id} startup={s} onSave={toggleSave} onRequest={() => {}} />)}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">{savedStartups.map((s) => <StartupCard key={s.id} startup={s} onSave={toggleSave} onRequest={handleRequest} />)}</div>
               )}
             </motion.div>
           )}
 
           {activeTab === "requests" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-              {mockRequestsSent.map((req, i) => (
+              {requestsSent.length === 0 ? (
+                <div className="text-center py-20"><div className="w-14 h-14 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4"><Send size={24} className="text-[#333]" /></div><p className="text-[#8A8A9A]" style={{ fontSize: "15px", fontWeight: 600 }}>No requests sent</p></div>
+              ) : requestsSent.map((req, i) => (
                 <motion.div key={req.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <GlassCard hover={false}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}><Building2 size={16} className="text-[#8A8A9A]" /></div>
-                        <div><p className="text-white" style={{ fontSize: "14px", fontWeight: 600, fontFamily: "monospace" }}>{req.id}</p><p className="text-[#555]" style={{ fontSize: "13px" }}>{req.industry}</p></div>
+                        <div><p className="text-white" style={{ fontSize: "14px", fontWeight: 600, fontFamily: "monospace" }}>{req.startup?.id || 'STR-NEW'}</p><p className="text-[#555]" style={{ fontSize: "13px" }}>{req.startup?.industry}</p></div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${req.status === "approved" ? "text-[#22c55e]" : "text-yellow-400"}`} style={{ fontSize: "11px", fontWeight: 600, background: req.status === "approved" ? "rgba(34,197,94,0.1)" : "rgba(250,204,21,0.1)" }}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${req.status === "approved" ? "bg-[#22c55e]" : "bg-yellow-400"}`} />{req.status === "approved" ? "Approved" : "Pending"}
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${req.status === "approved" ? "text-[#22c55e]" : req.status === "rejected" ? "text-red-400" : "text-yellow-400"}`} style={{ fontSize: "11px", fontWeight: 600, background: req.status === "approved" ? "rgba(34,197,94,0.1)" : req.status === "rejected" ? "rgba(248,113,113,0.1)" : "rgba(250,204,21,0.1)" }}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${req.status === "approved" ? "bg-[#22c55e]" : req.status === "rejected" ? "bg-red-400" : "bg-yellow-400"}`} />{req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                         </span>
-                        <span className="text-[#444] flex items-center gap-1" style={{ fontSize: "11px" }}><Clock size={11} /> {req.sentAt}</span>
+                        <span className="text-[#444] flex items-center gap-1" style={{ fontSize: "11px" }}><Clock size={11} /> {new Date(req.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </GlassCard>
@@ -179,12 +205,14 @@ export function InvestorDashboard() {
 
           {activeTab === "matches" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-              {mockMatches.map((m) => (
+              {matches.length === 0 ? (
+                <div className="text-center py-20"><div className="w-14 h-14 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4"><Handshake size={24} className="text-[#333]" /></div><p className="text-[#8A8A9A]" style={{ fontSize: "15px", fontWeight: 600 }}>No matches yet</p></div>
+              ) : matches.map((m) => (
                 <GlassCard key={m.id} hover={false}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(108,142,255,0.15), rgba(56,189,248,0.08))", border: "1px solid rgba(108,142,255,0.12)" }}><Handshake size={20} className="text-[#6C8EFF]" /></div>
-                      <div><p className="text-white" style={{ fontSize: "15px", fontWeight: 600 }}>{m.founderName}</p><p className="text-[#555]" style={{ fontSize: "13px" }}>{m.industry} · {m.matchedAt}</p></div>
+                      <div><p className="text-white" style={{ fontSize: "15px", fontWeight: 600 }}>{m.startup?.founder?.first_name} {m.startup?.founder?.last_name}</p><p className="text-[#555]" style={{ fontSize: "13px" }}>{m.startup?.industry} · Matched on {new Date(m.updated_at).toLocaleDateString()}</p></div>
                     </div>
                     <button className="group relative px-5 py-2.5 rounded-xl overflow-hidden" style={{ fontSize: "12px", fontWeight: 600 }}>
                       <div className="absolute inset-0 bg-gradient-to-r from-[#6C8EFF] to-[#38BDF8] group-hover:shadow-[0_0_20px_rgba(108,142,255,0.3)] transition-all" />

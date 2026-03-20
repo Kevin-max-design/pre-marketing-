@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { motion } from "motion/react";
 import {
   Rocket, Users, MessageSquare, Settings, CheckCircle, XCircle,
@@ -11,23 +12,10 @@ import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
 const sidebarItems = [
   { icon: Rocket, label: "My Startup", id: "startup" },
-  { icon: Users, label: "Investor Requests", id: "requests", badge: 5 },
+  { icon: Users, label: "Investor Requests", id: "requests", badge: 0 },
   { icon: CheckCircle, label: "Approved Investors", id: "approved" },
-  { icon: MessageSquare, label: "Messages", id: "messages", badge: 2 },
+  { icon: MessageSquare, label: "Messages", id: "messages" },
   { icon: Settings, label: "Settings", id: "settings" },
-];
-
-const mockRequests = [
-  { id: 1, name: "Sarah Chen", range: "$25K – $100K", bio: "Angel investor focused on SaaS and AI startups. 10+ portfolio companies.", matchScore: 92 },
-  { id: 2, name: "Marcus Johnson", range: "$5K – $25K", bio: "Former CTO turned investor. Specializes in early-stage FinTech.", matchScore: 85 },
-  { id: 3, name: "Emily Rodriguez", range: "$100K+", bio: "VC partner at Horizon Capital. Series A specialist.", matchScore: 94 },
-  { id: 4, name: "David Park", range: "$500 – $5K", bio: "First-time micro-investor passionate about EdTech.", matchScore: 67 },
-  { id: 5, name: "Lisa Wang", range: "$25K – $100K", bio: "Serial entrepreneur and angel. Healthcare & biotech focus.", matchScore: 78 },
-];
-
-const mockApproved = [
-  { id: 6, name: "Alex Turner", range: "$25K – $100K", bio: "Growth-stage investor. 3 successful exits.", approvedAt: "2 days ago" },
-  { id: 7, name: "Nina Patel", range: "$5K – $25K", bio: "Impact investor focused on sustainable startups.", approvedAt: "1 week ago" },
 ];
 
 const viewsData = [
@@ -57,11 +45,68 @@ function MiniChart({ data, dataKey, color }: { data: any[]; dataKey: string; col
 
 export function FounderDashboard() {
   const [activeTab, setActiveTab] = useState("startup");
-  const [requests, setRequests] = useState(mockRequests);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [approved, setApproved] = useState<any[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
+  const [stats, setStats] = useState({ views: 0, requests: 0, funding: 0, match: 0 });
 
-  const handleApprove = (id: number) => setRequests((p) => p.filter((r) => r.id !== id));
-  const handleReject = (id: number) => setRequests((p) => p.filter((r) => r.id !== id));
+  useEffect(() => {
+    async function fetchData() {
+      // 1. Fetch Startup & Access Requests
+      const { data: startup } = await supabase.from('startups').select('*').eq('founder_id', user.id).single();
+      if (startup) {
+        // Fetch Pending Requests
+        const { data: reqs } = await supabase.from('access_requests')
+          .select('*, investor:profiles!access_requests_investor_id_fkey(*)')
+          .eq('startup_id', startup.id)
+          .eq('status', 'pending');
+          
+        if (reqs) {
+          setRequests(reqs.map((r: any) => ({
+             id: r.id, 
+             name: `${r.investor?.first_name} ${r.investor?.last_name}`,
+             range: "Direct Interest", 
+             bio: "Investor profile linked via encrypted vault.", 
+             matchScore: 95
+          })));
+        }
+
+        // Fetch Approved Investors
+        const { data: appr } = await supabase.from('access_requests')
+          .select('*, investor:profiles!access_requests_investor_id_fkey(*)')
+          .eq('startup_id', startup.id)
+          .eq('status', 'approved');
+        
+        if (appr) {
+          setApproved(appr.map((r: any) => ({
+            id: r.id,
+            name: `${r.investor?.first_name} ${r.investor?.last_name}`,
+            range: "Verified Contact",
+            bio: "Investor matches your startup profile requirements.",
+            approvedAt: new Date(r.updated_at).toLocaleDateString()
+          })));
+        }
+
+        // Update Stats
+        setStats(s => ({
+          ...s,
+          requests: reqs ? reqs.length : 0,
+          funding: parseFloat(startup.funding_needed.replace(/[^0-9.]/g, '')) || 0
+        }));
+      }
+    }
+    if (user.id) fetchData();
+  }, [user.id]);
+
+  const handleApprove = async (id: number | string) => {
+    if (typeof id === 'string') await supabase.from('access_requests').update({ status: 'approved' }).eq('id', id);
+    setRequests((p) => p.filter((r) => r.id !== id));
+  };
+  const handleReject = async (id: number | string) => {
+    if (typeof id === 'string') await supabase.from('access_requests').update({ status: 'rejected' }).eq('id', id);
+    setRequests((p) => p.filter((r) => r.id !== id));
+  };
 
   const inputStyle: React.CSSProperties = { fontSize: "14px", background: "rgba(10,14,26,0.8)", border: "1px solid rgba(255,255,255,0.04)", backdropFilter: "blur(8px)" };
 
@@ -88,10 +133,10 @@ export function FounderDashboard() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
-                  { icon: Eye, label: "Profile Views", value: "234", change: "+12.5%", up: true, chart: viewsData, dataKey: "views" },
-                  { icon: Users, label: "Access Requests", value: "18", change: "+5 this week", up: true, chart: requestsChartData, dataKey: "count" },
-                  { icon: DollarSign, label: "Funding Goal", value: "$67.5K", change: "45% of $150K", up: true, chart: null, dataKey: "" },
-                  { icon: TrendingUp, label: "Match Score", value: "87", change: "+3.2 pts", up: true, chart: null, dataKey: "" },
+                  { icon: Eye, label: "Profile Views", value: stats.views.toString(), change: "0%", up: true, chart: viewsData, dataKey: "views" },
+                  { icon: Users, label: "Access Requests", value: stats.requests.toString(), change: `${stats.requests} new`, up: true, chart: requestsChartData, dataKey: "count" },
+                  { icon: DollarSign, label: "Funding Goal", value: `$${(stats.funding/1000).toFixed(1)}K`, change: `0% of $${(stats.funding/1000).toFixed(1)}K`, up: true, chart: null, dataKey: "" },
+                  { icon: TrendingUp, label: "Match Score", value: "0", change: "New startup", up: true, chart: null, dataKey: "" },
                 ].map((stat) => (
                   <GlassCard key={stat.label} hover={false}>
                     <div className="flex items-center justify-between mb-3">
@@ -156,7 +201,7 @@ export function FounderDashboard() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-4">
                         <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, rgba(108,142,255,0.15), rgba(56,189,248,0.08))", border: "1px solid rgba(108,142,255,0.12)" }}>
-                          <span className="text-[#6C8EFF]" style={{ fontSize: "13px", fontWeight: 700 }}>{req.name.split(" ").map((n) => n[0]).join("")}</span>
+                          <span className="text-[#6C8EFF]" style={{ fontSize: "13px", fontWeight: 700 }}>{req.name.split(" ").map((n: string) => n[0]).join("")}</span>
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -185,13 +230,15 @@ export function FounderDashboard() {
 
           {activeTab === "approved" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-              {mockApproved.map((inv, i) => (
+              {approved.length === 0 ? (
+                <div className="text-center py-20"><div className="w-14 h-14 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4"><CheckCircle size={24} className="text-[#333]" /></div><p className="text-[#8A8A9A]" style={{ fontSize: "15px", fontWeight: 600 }}>No approved investors</p></div>
+              ) : approved.map((inv, i) => (
                 <motion.div key={inv.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <GlassCard hover={false}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-4">
                         <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, rgba(108,142,255,0.15), rgba(56,189,248,0.08))", border: "1px solid rgba(108,142,255,0.12)" }}>
-                          <span className="text-[#6C8EFF]" style={{ fontSize: "13px", fontWeight: 700 }}>{inv.name.split(" ").map((n) => n[0]).join("")}</span>
+                          <span className="text-[#6C8EFF]" style={{ fontSize: "13px", fontWeight: 700 }}>{inv.name.split(" ").map((n: string) => n[0]).join("")}</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2"><p className="text-white" style={{ fontSize: "14px", fontWeight: 600 }}>{inv.name}</p><CheckCircle size={13} className="text-[#22c55e]" /></div>

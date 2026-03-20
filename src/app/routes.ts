@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { FounderDashboard } from "./pages/FounderDashboard";
 import { InvestorDashboard } from "./pages/InvestorDashboard";
+import { AdminDashboard } from "./pages/AdminDashboard";
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
       { path: "signup/:role", Component: SignupPage },
       { path: "founder", Component: FounderDashboard },
       { path: "investor", Component: InvestorDashboard },
+      { path: "admin", Component: AdminDashboard },
     ],
   },
 ]);

@@ -18,7 +18,7 @@ export function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await login(email);
+      const result = await login(email, password);
       localStorage.setItem("user", JSON.stringify(result.user));
       if (result.user.role === "FOUNDER") {
         navigate("/founder");

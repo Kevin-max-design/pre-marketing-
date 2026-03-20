@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link } from "react-router";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { motion, useScroll, useTransform, useInView, useMotionValue, useSpring } from "motion/react";
 import { GlassCard } from "../components/GlassCard";
 import { GridBackground } from "../components/GridBackground";

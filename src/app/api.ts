@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export const checkHealth = async () => {
   // Using Supabase, the health check can just verify client initialization

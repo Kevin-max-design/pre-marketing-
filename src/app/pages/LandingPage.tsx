@@ -8,7 +8,8 @@ import {
   Shield, UserCheck, Coins, Lock as LockIcon, Sparkles, ArrowRight, CheckCircle,
   Zap, Eye, Send, Star, TrendingUp, Terminal, Activity,
   Cpu, Database, Globe, ChevronRight, ArrowUpRight, Quote,
-  BarChart3, Rocket, Users, DollarSign, Code2, Layers
+  BarChart3, Rocket, Users, DollarSign, Code2, Layers,
+  Instagram, Linkedin
 } from "lucide-react";
 
 /* ─── Reusable Animation Wrappers ─── */
@@ -976,7 +977,12 @@ function Footer() {
   const columns = [
     { title: "Product", links: ["Features", "Pricing", "Security", "Changelog"] },
     { title: "Company", links: ["About", "Blog", "Careers", "Press"] },
-    { title: "Legal", links: ["Privacy", "Terms", "Cookies", "Licenses"] },
+    { title: "Legal", links: [
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+      { label: "Cookies", href: "#" },
+      { label: "Licenses", href: "#" }
+    ] },
   ];
 
   return (
@@ -992,9 +998,20 @@ function Footer() {
             </div>
             <p className="text-[#555] max-w-xs mb-6" style={{ fontSize: "13px", lineHeight: 1.6 }}>The private micro-investment platform connecting founders and verified investors.</p>
             <div className="flex gap-2.5">
-              {["X", "LI", "GH"].map((s) => (
-                <motion.a key={s} href="#" whileHover={{ scale: 1.1, y: -2 }} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#555] hover:text-white transition-all" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.04)", fontSize: "11px", fontWeight: 700 }}>
-                  {s}
+              {[
+                { icon: Instagram, href: "https://www.instagram.com/starthubofficial_/" },
+                { icon: Linkedin, href: "https://www.linkedin.com/company/starthub-network-private-limited/" }
+              ].map((s, idx) => (
+                <motion.a 
+                  key={idx} 
+                  href={s.href} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  whileHover={{ scale: 1.1, y: -2 }} 
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#555] hover:text-white transition-all" 
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.04)" }}
+                >
+                  <s.icon size={15} />
                 </motion.a>
               ))}
             </div>
@@ -1003,8 +1020,16 @@ function Footer() {
             <div key={col.title}>
               <h4 className="text-[#555] mb-4" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em" }}>{col.title.toUpperCase()}</h4>
               <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link}><a href="#" className="text-[#8A8A9A] hover:text-white transition-colors" style={{ fontSize: "13px" }}>{link}</a></li>
+                {col.links.map((link: any) => (
+                  <li key={typeof link === 'string' ? link : link.label}>
+                    <Link 
+                      to={typeof link === 'string' ? "#" : link.href} 
+                      className="text-[#8A8A9A] hover:text-white transition-colors" 
+                      style={{ fontSize: "13px" }}
+                    >
+                      {typeof link === 'string' ? link : link.label}
+                    </Link>
+                  </li>
                 ))}
               </ul>
             </div>

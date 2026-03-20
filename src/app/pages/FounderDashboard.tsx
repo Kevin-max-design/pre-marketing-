@@ -58,14 +58,14 @@ export function FounderDashboard() {
       if (startup) {
         // Fetch Pending Requests
         const { data: reqs } = await supabase.from('access_requests')
-          .select('*, investor:profiles!access_requests_investor_id_fkey(*)')
+          .select('*, investor:investor(*)')
           .eq('startup_id', startup.id)
           .eq('status', 'pending');
           
         if (reqs) {
           setRequests(reqs.map((r: any) => ({
              id: r.id, 
-             name: `${r.investor?.first_name} ${r.investor?.last_name}`,
+             name: r.investor?.first_name ? `${r.investor.first_name} ${r.investor.last_name}` : (r.investor?.email || "Waitlist Entry"),
              range: "Direct Interest", 
              bio: "Investor profile linked via encrypted vault.", 
              matchScore: 95
@@ -74,14 +74,14 @@ export function FounderDashboard() {
 
         // Fetch Approved Investors
         const { data: appr } = await supabase.from('access_requests')
-          .select('*, investor:profiles!access_requests_investor_id_fkey(*)')
+          .select('*, investor:investor(*)')
           .eq('startup_id', startup.id)
           .eq('status', 'approved');
         
         if (appr) {
           setApproved(appr.map((r: any) => ({
             id: r.id,
-            name: `${r.investor?.first_name} ${r.investor?.last_name}`,
+            name: r.investor?.first_name ? `${r.investor.first_name} ${r.investor.last_name}` : (r.investor?.email || "Waitlist Entry"),
             range: "Verified Contact",
             bio: "Investor matches your startup profile requirements.",
             approvedAt: new Date(r.updated_at).toLocaleDateString()

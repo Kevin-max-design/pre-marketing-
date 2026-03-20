@@ -58,19 +58,21 @@ export const login = async (email: string, password?: string) => {
 
   if (authError) throw new Error(authError.message);
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', authData.user.id)
-    .single();
+  const [profile, investorProfile] = await Promise.all([
+    supabase.from('founder').select('*').eq('id', authData.user.id).single(),
+    supabase.from('investor').select('*').eq('id', authData.user.id).single()
+  ]);
+
+  const existingProfile = profile.data || investorProfile.data;
+  const role = profile.data ? 'FOUNDER' : (investorProfile.data ? 'INVESTOR' : 'FOUNDER');
 
   return { 
     success: true, 
     user: { 
       id: authData.user.id, 
       email: authData.user.email, 
-      name: profile ? `${profile.first_name} ${profile.last_name}` : '', 
-      role: profile ? profile.role : 'FOUNDER' 
+      name: existingProfile ? (existingProfile.first_name || 'Waitlist Entry') : '', 
+      role: existingProfile ? (existingProfile.role || role) : role
     } 
   };
 };

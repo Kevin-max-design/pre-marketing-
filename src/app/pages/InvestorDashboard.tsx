@@ -97,7 +97,7 @@ export function InvestorDashboard() {
 
         // Load Matches (Approved requests)
         const { data: mData } = await supabase.from('access_requests')
-          .select('*, startup:startups(industry, id, founder:profiles(first_name, last_name))')
+          .select('*, startup:startups(industry, id, founder:founder(*))')
           .eq('investor_id', user.id)
           .eq('status', 'approved');
         if (mData) setMatches(mData);
@@ -212,7 +212,14 @@ export function InvestorDashboard() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(108,142,255,0.15), rgba(56,189,248,0.08))", border: "1px solid rgba(108,142,255,0.12)" }}><Handshake size={20} className="text-[#6C8EFF]" /></div>
-                      <div><p className="text-white" style={{ fontSize: "15px", fontWeight: 600 }}>{m.startup?.founder?.first_name} {m.startup?.founder?.last_name}</p><p className="text-[#555]" style={{ fontSize: "13px" }}>{m.startup?.industry} · Matched on {new Date(m.updated_at).toLocaleDateString()}</p></div>
+                      <div>
+                        <p className="text-white" style={{ fontSize: "15px", fontWeight: 600 }}>
+                          {m.startup?.founder?.first_name ? `${m.startup.founder.first_name} ${m.startup.founder.last_name}` : (m.startup?.founder?.email || "Waitlist Entry")}
+                        </p>
+                        <p className="text-[#555]" style={{ fontSize: "13px" }}>
+                          {m.startup?.industry} · Matched on {m.updated_at ? new Date(m.updated_at).toLocaleDateString() : "N/A"}
+                        </p>
+                      </div>
                     </div>
                     <button className="group relative px-5 py-2.5 rounded-xl overflow-hidden" style={{ fontSize: "12px", fontWeight: 600 }}>
                       <div className="absolute inset-0 bg-gradient-to-r from-[#6C8EFF] to-[#38BDF8] group-hover:shadow-[0_0_20px_rgba(108,142,255,0.3)] transition-all" />

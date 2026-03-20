@@ -9,7 +9,7 @@ import { GlassCard } from "../components/GlassCard";
 import { fetchAllProfiles, deleteProfile, maskEmail, fetchGlobalStats } from "../api";
 
 export function AdminDashboard() {
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, founders: 0, investors: 0, admins: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,7 +26,7 @@ export function AdminDashboard() {
         fetchGlobalStats()
       ]);
       const filteredProfiles = allProfiles.filter((p: any) => p.role !== 'ADMIN');
-      setProfiles(filteredProfiles);
+      setUsers(filteredProfiles);
       setStats({
         ...globalStats,
         total: globalStats.founders + globalStats.investors
@@ -46,7 +46,7 @@ export function AdminDashboard() {
     if (window.confirm(`Are you sure you want to delete profile for ${email}?`)) {
       try {
         await deleteProfile(id);
-        setProfiles(p => p.filter(prof => prof.id !== id));
+        setUsers((u: any[]) => u.filter((user: any) => user.id !== id));
         loadData(); // Refresh stats
       } catch (err: any) {
         alert(err.message);
@@ -54,7 +54,7 @@ export function AdminDashboard() {
     }
   };
 
-  const filteredProfiles = profiles.filter(p => {
+  const filteredProfiles = users.filter(p => {
     const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          `${p.first_name} ${p.last_name}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterRole === "ALL" || p.role === filterRole;

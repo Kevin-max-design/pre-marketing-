@@ -1031,13 +1031,16 @@ export function LandingPage() {
 
   useEffect(() => {
     async function fetchStats() {
-      const { data: profiles } = await supabase.from('profiles').select('role');
-      const { data: startups } = await supabase.from('startups').select('funding_needed');
-      const { data: deals } = await supabase.from('access_requests').select('id').eq('status', 'approved');
+      const [foundersRes, investorsRes, startupsRes, dealsRes] = await Promise.all([
+        supabase.from('founder').select('id'),
+        supabase.from('investor').select('id'),
+        supabase.from('startups').select('funding_needed'),
+        supabase.from('access_requests').select('id').eq('status', 'approved')
+      ]);
 
-      const foundersCount = profiles?.filter((p: any) => p.role === 'FOUNDER').length || 0;
-      const investorsCount = profiles?.filter((p: any) => p.role === 'INVESTOR').length || 0;
-      const totalCapital = startups?.reduce((acc: number, curr: any) => {
+      const foundersCount = foundersRes.data?.length || 0;
+      const investorsCount = investorsRes.data?.length || 0;
+      const totalCapital = startupsRes.data?.reduce((acc: number, curr: any) => {
         const val = parseFloat(curr.funding_needed.replace(/[^0-9.]/g, '')) || 0;
         return acc + val;
       }, 0) || 0;
@@ -1046,7 +1049,7 @@ export function LandingPage() {
         founders: foundersCount,
         investors: investorsCount,
         capital: totalCapital,
-        deals: deals?.length || 0
+        deals: dealsRes.data?.length || 0
       });
     }
     fetchStats();

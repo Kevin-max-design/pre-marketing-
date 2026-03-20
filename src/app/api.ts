@@ -76,21 +76,34 @@ export const login = async (email: string, password?: string) => {
 };
 
 export const fetchUsers = async () => {
-  const { data, error } = await supabase.from('profiles').select('*');
-  if (error) throw new Error(error.message);
-  return data;
+  const [founders, investors] = await Promise.all([
+    supabase.from('founder').select('*'),
+    supabase.from('investor').select('*')
+  ]);
+  return [
+    ...(founders.data || []).map((f: any) => ({ ...f, role: 'FOUNDER', first_name: f.first_name || 'Waitlist', last_name: f.last_name || 'Entry' })),
+    ...(investors.data || []).map((i: any) => ({ ...i, role: 'INVESTOR', first_name: i.first_name || 'Waitlist', last_name: i.last_name || 'Entry' }))
+  ];
 };
 
 export const fetchUser = async (id: string) => {
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
-  if (error) throw new Error(error.message);
-  return data;
+  // Check both tables
+  const [f, i] = await Promise.all([
+    supabase.from('founder').select('*').eq('id', id).single(),
+    supabase.from('investor').select('*').eq('id', id).single()
+  ]);
+  if (f.data) return { ...f.data, role: 'FOUNDER' };
+  if (i.data) return { ...i.data, role: 'INVESTOR' };
+  throw new Error("User not found");
 };
 
-export const updateUser = async (id: string, updateData: Record<string, string>) => {
+export const updateUser = async (id: string, updateData: any) => {
+  // Determine which table based on current role or just try both
+  const { role, ...cleanData } = updateData;
+  const table = role?.toLowerCase() === 'investor' ? 'investor' : 'founder';
   const { data, error } = await supabase
-    .from('profiles')
-    .update(updateData)
+    .from(table)
+    .update(cleanData)
     .eq('id', id)
     .select()
     .single();
@@ -98,45 +111,44 @@ export const updateUser = async (id: string, updateData: Record<string, string>)
   if (error) throw new Error(error.message);
   return data;
 };
+
 export const deleteProfile = async (id: string) => {
-  const { error } = await supabase.from('profiles').delete().eq('id', id);
-  if (error) throw new Error(error.message);
+  // Delete from both to be safe
+  await Promise.all([
+    supabase.from('founder').delete().eq('id', id),
+    supabase.from('investor').delete().eq('id', id)
+  ]);
   return { success: true };
 };
 
 export const fetchAllProfiles = async () => {
-  const [profilesRes, foundersRes, investorsRes] = await Promise.all([
-    supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+  const [foundersRes, investorsRes] = await Promise.all([
     supabase.from('founder').select('*').order('created_at', { ascending: false }),
     supabase.from('investor').select('*').order('created_at', { ascending: false })
   ]);
 
-  const pData = profilesRes.data || [];
-  const fData = (foundersRes.data || []).map(f => ({ ...f, role: 'FOUNDER', first_name: 'Waitlist', last_name: 'Entry' }));
-  const iData = (investorsRes.data || []).map(i => ({ ...i, role: 'INVESTOR', first_name: 'Waitlist', last_name: 'Entry' }));
+  const fData = (foundersRes.data || []).map((f: any) => ({ ...f, role: 'FOUNDER', first_name: f.first_name || 'Waitlist', last_name: f.last_name || 'Entry' }));
+  const iData = (investorsRes.data || []).map((i: any) => ({ ...i, role: 'INVESTOR', first_name: i.first_name || 'Waitlist', last_name: i.last_name || 'Entry' }));
 
-  // Combine and remove duplicates by email if necessary, but for now just concat
-  return [...pData, ...fData, ...iData].sort((a, b) => 
+  return [...fData, ...iData].sort((a, b) => 
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 };
 
 export const fetchGlobalStats = async () => {
-  const [profilesRes, foundersRes, investorsRes] = await Promise.all([
-    supabase.from('profiles').select('role'),
+  const [foundersRes, investorsRes] = await Promise.all([
     supabase.from('founder').select('id'),
     supabase.from('investor').select('id')
   ]);
 
-  const profiles = profilesRes.data || [];
-  const waitlistFounders = foundersRes.data || [];
-  const waitlistInvestors = investorsRes.data || [];
+  const founders = foundersRes.data || [];
+  const investors = investorsRes.data || [];
   
   const stats = {
-    total: profiles.length + waitlistFounders.length + waitlistInvestors.length,
-    founders: profiles.filter((p: any) => p.role === 'FOUNDER').length + waitlistFounders.length,
-    investors: profiles.filter((p: any) => p.role === 'INVESTOR').length + waitlistInvestors.length,
-    admins: profiles.filter((p: any) => p.role === 'ADMIN').length
+    total: founders.length + investors.length,
+    founders: founders.length,
+    investors: investors.length,
+    admins: 0 // No admins tracked in these tables
   };
   
   return stats;

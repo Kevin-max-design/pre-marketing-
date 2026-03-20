@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { 
   Users, UserPlus, Trash2, Edit3, Search, Filter, 
   Shield, TrendingUp, Briefcase, Mail, Calendar, 
-  ChevronRight, Loader2, AlertCircle, RefreshCw, Lock
+  ChevronRight, Loader2, AlertCircle, RefreshCw, Lock as LockIcon
 } from "lucide-react";
 import { GlassCard } from "../components/GlassCard";
 import { fetchAllProfiles, deleteProfile, maskEmail, fetchGlobalStats } from "../api";
@@ -92,7 +92,7 @@ export function AdminDashboard() {
             className="space-y-4"
           >
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#444]" size={18} />
+              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#444]" size={18} />
               <input
                 type="password"
                 placeholder="Enter Password"
@@ -260,7 +260,7 @@ export function AdminDashboard() {
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2 text-[#555]" style={{ fontSize: "12px" }}>
                           <Calendar size={12} />
-                          {new Date(user.created_at).toLocaleDateString()}
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
                         </div>
                       </td>
                       <td className="px-6 py-5 text-right">

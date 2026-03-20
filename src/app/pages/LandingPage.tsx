@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform, useInView, useMotionValue, useSpring }
 import { GlassCard } from "../components/GlassCard";
 import { GridBackground } from "../components/GridBackground";
 import {
-  Shield, UserCheck, Coins, Lock, Sparkles, ArrowRight, CheckCircle,
+  Shield, UserCheck, Coins, Lock as LockIcon, Sparkles, ArrowRight, CheckCircle,
   Zap, Eye, Send, Star, TrendingUp, Terminal, Activity,
   Cpu, Database, Globe, ChevronRight, ArrowUpRight, Quote,
   BarChart3, Rocket, Users, DollarSign, Code2, Layers
@@ -531,7 +531,7 @@ function HeroSection({ stats }: { stats: any }) {
 
 function TrustMarquee() {
   const row1 = [
-    { icon: Lock, label: "End-to-End Encrypted" }, { icon: Shield, label: "SOC 2 Compliant" },
+    { icon: LockIcon, label: "End-to-End Encrypted" }, { icon: Shield, label: "SOC 2 Compliant" },
     { icon: Activity, label: "99.99% Uptime SLA" }, { icon: Database, label: "Zero Data Leaks" },
     { icon: Globe, label: "Global Infrastructure" }, { icon: Code2, label: "Open API" },
     { icon: Layers, label: "Multi-Layer Security" }, { icon: Cpu, label: "AI-Powered Matching" },
@@ -647,7 +647,7 @@ function HowItWorksSection() {
 
   const founderSteps = [
     { step: "01", title: "Submit Startup", desc: "Create an encrypted startup profile with your pitch, metrics, and funding requirements.", icon: Terminal },
-    { step: "02", title: "Stay Private", desc: "Your identity and data remain hidden. Only masked profiles are visible.", icon: Lock },
+    { step: "02", title: "Stay Private", desc: "Your identity and data remain hidden. Only masked profiles are visible.", icon: LockIcon },
     { step: "03", title: "Review & Approve", desc: "Evaluate investor profiles and investment theses before granting access.", icon: UserCheck },
     { step: "04", title: "Raise Capital", desc: "Connect directly, negotiate, and raise capital through secure channels.", icon: TrendingUp },
   ];
@@ -1035,9 +1035,9 @@ export function LandingPage() {
       const { data: startups } = await supabase.from('startups').select('funding_needed');
       const { data: deals } = await supabase.from('access_requests').select('id').eq('status', 'approved');
 
-      const foundersCount = profiles?.filter(p => p.role === 'FOUNDER').length || 0;
-      const investorsCount = profiles?.filter(p => p.role === 'INVESTOR').length || 0;
-      const totalCapital = startups?.reduce((acc, curr) => {
+      const foundersCount = profiles?.filter((p: any) => p.role === 'FOUNDER').length || 0;
+      const investorsCount = profiles?.filter((p: any) => p.role === 'INVESTOR').length || 0;
+      const totalCapital = startups?.reduce((acc: number, curr: any) => {
         const val = parseFloat(curr.funding_needed.replace(/[^0-9.]/g, '')) || 0;
         return acc + val;
       }, 0) || 0;
